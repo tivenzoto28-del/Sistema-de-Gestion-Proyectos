@@ -4,7 +4,7 @@ import com.example.Investigacion.dto.ProductoRequest;
 
 /*
  * BLOQUE: Producto concreto
- * Publicación en revista con revista, editorial, volumen y cuartil.
+ * Publicación en revista con revista, editorial, volumen, cuartil y fecha de publicación.
  */
 public class PublicacionRevista extends Producto {
 
@@ -17,7 +17,7 @@ public class PublicacionRevista extends Producto {
                 request.quartil(),
                 null,
                 null,
-                null,
+                requerido(request.fechaPublicacion(), "fecha de publicacion", "Revista"),
                 null);
     }
 

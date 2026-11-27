@@ -424,3 +424,45 @@ Se eliminó código sin uso (`Role.desdeUsuario` y `mostrarResultado`) y cualqui
 Todas las clases Java llevan un bloque `/* BLOQUE: ... */` con su responsabilidad, y los archivos más grandes tienen bloques adicionales antes de cada grupo de métodos (autenticación, conexiones, fachada, factory, interceptor, reportes y espacios personales). El JavaScript incluye bloques para estado, navegación, autenticación, operaciones, productos, reportes, usuarios y utilidades; el CSS y el script SQL también están segmentados por bloques.
 
 Verificación final: `./gradlew build` BUILD SUCCESSFUL, `node --check app.js` sin errores, health y login 200, reportes 200, creación de usuario 200, inicio 200. Las cuentas de prueba de la simulación se eliminan al ejecutar el script de seguridad, quedando solo las cuentas base.
+
+## 14. Guía práctica de capturas
+
+El archivo `docs/guias-capturas.txt` contiene el paso a paso para tomar las 15 imágenes sugeridas: usuario con el que entrar, menú que debe abrirse, datos de ejemplo y contenido que debe aparecer en cada captura.
+
+## 15. Corrección del campo de fecha en productos de tipo Revista
+
+Se detectó que el formulario de producto no mostraba fecha para el tipo Revista, aunque la guía de capturas la solicitaba. Se agregó `fecha_publicacion` a `publicacion_revista`, se actualizaron los procedimientos `sp_registrar_producto_transaccional` y `sp_reclasificar_producto_transaccional`, y `PublicacionRevista` ahora envía y exige esa fecha.
+
+Prueba realizada: registro del producto «Revista con fecha» con fecha `2027-03-15`; verificación en base de datos:
+
+```text
+id_producto=22, titulo="Revista con fecha", fecha_publicacion=2027-03-15
+```
+
+El proyecto temporal usado en la prueba se eliminó al finalizar.
+
+## 16. Corrección de responsabilidades: secretaría operativa
+
+Se ajustó la lógica de roles: el administrador conserva el control total y las tareas de mantenimiento, pero la secretaría es la responsable de atender a docentes y estudiantes y de ejecutar todo el ciclo operativo de proyectos.
+
+La secretaría puede ahora: listar y ver detalle de proyectos, registrar proyecto, prórroga y producto, actualizar y eliminar proyecto, asignar profesores, registrar estudiantes, cambio de director, relevo, cierre con desvinculación, crear cuentas académicas y consultar los reportes autorizados. El administrador mantiene acceso para control y mantenimiento, y la auditoría sigue siendo exclusiva de él.
+
+Se otorgaron en MariaDB los permisos reales: SELECT/INSERT/UPDATE/DELETE sobre las tablas del ciclo de proyectos y EXECUTE sobre los procedimientos de cambio de director, relevo y desvinculación. El procedimiento de creación de usuarios concede los mismos permisos a las secretarías nuevas.
+
+Simulación realizada con `secretaria/secre1`: alta, consulta, actualización, asignación de docente, registro de estudiante, cambio de director, relevo, cierre con desvinculación y eliminación de un proyecto temporal. Todas las operaciones respondieron 200; la regla de negocio del relevo se verificó al exigir un director subrogante activo.
+
+## 17. Líneas de investigación: alta y asignación
+
+Se agregaron tres operaciones para admin y secretaría: registrar una línea nueva, asignarla a un proyecto y asignarla a un docente. Los endpoints son `POST /api/lineas`, `POST /api/proyectos/{id}/lineas` y `POST /api/docentes/{id}/lineas`; la consulta por docente está en `GET /api/docentes/{id}/lineas`.
+
+Simulación con `secretaria/secre1`:
+
+```text
+POST /api/lineas -> "Linea de investigacion registrada correctamente." (id_linea=8)
+POST /api/proyectos/21/lineas -> "Linea asignada al proyecto correctamente."
+POST /api/docentes/29/lineas  -> "Linea asignada al docente correctamente."
+proyecto_linea: 1 fila | linea_profesor: 1 fila
+GET /api/proyectos/21 -> lineas: [{"id_linea":8,"nombre_linea":"Linea de prueba integral"}]
+```
+
+Un segundo intento de asignación devolvió 400 con "La linea ya estaba asignada a este docente." El administrador también ejecutó el alta y la asignación con 200. El proyecto y las líneas temporales se eliminaron al finalizar.

@@ -12,7 +12,9 @@ import com.example.Investigacion.dto.AsignarProfesorRequest;
 import com.example.Investigacion.dto.CambioDirectorRequest;
 import com.example.Investigacion.dto.CerrarProyectoRequest;
 import com.example.Investigacion.dto.CrearUsuarioRequest;
+import com.example.Investigacion.dto.LineaRequest;
 import com.example.Investigacion.dto.ProductoRequest;
+import com.example.Investigacion.dto.RegistrarLineaRequest;
 import com.example.Investigacion.dto.ProrrogaRequest;
 import com.example.Investigacion.dto.RegistrarEstudianteRequest;
 import com.example.Investigacion.dto.RegistrarProyectoRequest;
@@ -212,6 +214,57 @@ public class GestionInvestigacionFacade {
      * Creación delegada de usuarios
      * Admin crea secretaría/coordinador; secretaría crea profesor/estudiante. El SP aplica los GRANT.
      */
+    public Map<String, Object> registrarLinea(SessionUser usuario, RegistrarLineaRequest request) {
+        databaseService.conUsuario(usuario, conexion -> {
+            Sql.actualizar(conexion, """
+                    INSERT INTO linea_investigacion (nombre_linea, descriptores)
+                    VALUES (?, ?)
+                    """, request.nombreLinea(), request.descriptores());
+            return null;
+        });
+        return Map.of("mensaje", "Linea de investigacion registrada correctamente.");
+    }
+
+    public Map<String, Object> asignarLineaProyecto(SessionUser usuario, Integer idProyecto,
+            LineaRequest request) {
+        databaseService.conUsuario(usuario, conexion -> {
+            int filas = Sql.actualizar(conexion, """
+                    INSERT IGNORE INTO proyecto_linea (id_proyecto, id_linea)
+                    VALUES (?, ?)
+                    """, idProyecto, request.idLinea());
+            if (filas == 0) {
+                throw new ApiException(400, "La linea ya estaba asignada a este proyecto.");
+            }
+            return null;
+        });
+        return Map.of("mensaje", "Linea asignada al proyecto correctamente.");
+    }
+
+    public Map<String, Object> asignarLineaProfesor(SessionUser usuario, Integer idProfesor,
+            LineaRequest request) {
+        databaseService.conUsuario(usuario, conexion -> {
+            int filas = Sql.actualizar(conexion, """
+                    INSERT IGNORE INTO linea_profesor (id_linea, id_profesor)
+                    VALUES (?, ?)
+                    """, request.idLinea(), idProfesor);
+            if (filas == 0) {
+                throw new ApiException(400, "La linea ya estaba asignada a este docente.");
+            }
+            return null;
+        });
+        return Map.of("mensaje", "Linea asignada al docente correctamente.");
+    }
+
+    public List<Map<String, Object>> lineasProfesor(SessionUser usuario, Integer idProfesor) {
+        return databaseService.conUsuario(usuario, conexion -> Sql.consultar(conexion, """
+                SELECT l.id_linea, l.nombre_linea, l.descriptores
+                  FROM linea_profesor lp
+                  JOIN linea_investigacion l ON l.id_linea = lp.id_linea
+                 WHERE lp.id_profesor = ?
+                 ORDER BY l.nombre_linea
+                """, idProfesor));
+    }
+
     public Map<String, Object> crearUsuario(SessionUser creador, CrearUsuarioRequest request) {
         String rolSolicitado = request.rol().trim().toUpperCase();
         boolean permitido = (creador.rol() == Role.ADMIN

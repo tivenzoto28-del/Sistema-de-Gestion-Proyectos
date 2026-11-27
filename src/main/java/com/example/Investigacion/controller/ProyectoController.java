@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.Investigacion.dto.AsignarProfesorRequest;
 import com.example.Investigacion.dto.CambioDirectorRequest;
 import com.example.Investigacion.dto.CerrarProyectoRequest;
+import com.example.Investigacion.dto.LineaRequest;
 import com.example.Investigacion.dto.ProrrogaRequest;
 import com.example.Investigacion.dto.RegistrarEstudianteRequest;
 import com.example.Investigacion.dto.RegistrarProyectoRequest;
@@ -42,14 +43,14 @@ public class ProyectoController {
     }
 
     @GetMapping
-    @RequireRole({Role.ADMIN, Role.COORDINADOR, Role.DIRECTOR})
+    @RequireRole({Role.ADMIN, Role.SECRETARIA, Role.COORDINADOR, Role.DIRECTOR})
     public List<Map<String, Object>> listar(
             @org.springframework.web.bind.annotation.SessionAttribute(SessionKeys.USER) SessionUser usuario) {
         return facade.listarProyectos(usuario);
     }
 
     @GetMapping("/{idProyecto}")
-    @RequireRole({Role.ADMIN, Role.COORDINADOR, Role.DIRECTOR})
+    @RequireRole({Role.ADMIN, Role.SECRETARIA, Role.COORDINADOR, Role.DIRECTOR})
     public Map<String, Object> detalle(
             @org.springframework.web.bind.annotation.SessionAttribute(SessionKeys.USER) SessionUser usuario,
             @PathVariable Integer idProyecto) {
@@ -65,7 +66,7 @@ public class ProyectoController {
     }
 
     @PutMapping("/{idProyecto}")
-    @RequireRole({Role.ADMIN})
+    @RequireRole({Role.ADMIN, Role.SECRETARIA})
     public Map<String, Object> actualizar(
             @org.springframework.web.bind.annotation.SessionAttribute(SessionKeys.USER) SessionUser usuario,
             @PathVariable Integer idProyecto,
@@ -74,7 +75,7 @@ public class ProyectoController {
     }
 
     @DeleteMapping("/{idProyecto}")
-    @RequireRole({Role.ADMIN})
+    @RequireRole({Role.ADMIN, Role.SECRETARIA})
     public Map<String, Object> eliminar(
             @org.springframework.web.bind.annotation.SessionAttribute(SessionKeys.USER) SessionUser usuario,
             @PathVariable Integer idProyecto) {
@@ -91,7 +92,7 @@ public class ProyectoController {
     }
 
     @PostMapping("/{idProyecto}/cambio-director")
-    @RequireRole({Role.ADMIN})
+    @RequireRole({Role.ADMIN, Role.SECRETARIA})
     public Map<String, Object> cambioDirector(
             @org.springframework.web.bind.annotation.SessionAttribute(SessionKeys.USER) SessionUser usuario,
             @PathVariable Integer idProyecto,
@@ -100,7 +101,7 @@ public class ProyectoController {
     }
 
     @PostMapping("/{idProyecto}/relevo")
-    @RequireRole({Role.ADMIN})
+    @RequireRole({Role.ADMIN, Role.SECRETARIA})
     public Map<String, Object> relevo(
             @org.springframework.web.bind.annotation.SessionAttribute(SessionKeys.USER) SessionUser usuario,
             @PathVariable Integer idProyecto,
@@ -109,7 +110,7 @@ public class ProyectoController {
     }
 
     @PostMapping("/{idProyecto}/desvincular-cierre")
-    @RequireRole({Role.ADMIN})
+    @RequireRole({Role.ADMIN, Role.SECRETARIA})
     public Map<String, Object> desvincularCierre(
             @org.springframework.web.bind.annotation.SessionAttribute(SessionKeys.USER) SessionUser usuario,
             @PathVariable Integer idProyecto) {
@@ -117,7 +118,7 @@ public class ProyectoController {
     }
 
     @PostMapping("/{idProyecto}/cerrar")
-    @RequireRole({Role.ADMIN})
+    @RequireRole({Role.ADMIN, Role.SECRETARIA})
     public Map<String, Object> cerrarProyecto(
             @org.springframework.web.bind.annotation.SessionAttribute(SessionKeys.USER) SessionUser usuario,
             @PathVariable Integer idProyecto,
@@ -126,7 +127,7 @@ public class ProyectoController {
     }
 
     @PostMapping("/{idProyecto}/equipo")
-    @RequireRole({Role.ADMIN})
+    @RequireRole({Role.ADMIN, Role.SECRETARIA})
     public Map<String, Object> asignarProfesor(
             @org.springframework.web.bind.annotation.SessionAttribute(SessionKeys.USER) SessionUser usuario,
             @PathVariable Integer idProyecto,
@@ -135,11 +136,20 @@ public class ProyectoController {
     }
 
     @PostMapping("/{idProyecto}/estudiantes")
-    @RequireRole({Role.ADMIN})
+    @RequireRole({Role.ADMIN, Role.SECRETARIA})
     public Map<String, Object> registrarEstudiante(
             @org.springframework.web.bind.annotation.SessionAttribute(SessionKeys.USER) SessionUser usuario,
             @PathVariable Integer idProyecto,
             @RequestBody @Valid RegistrarEstudianteRequest request) {
         return facade.registrarEstudiante(usuario, idProyecto, request);
+    }
+
+    @PostMapping("/{idProyecto}/lineas")
+    @RequireRole({Role.ADMIN, Role.SECRETARIA})
+    public Map<String, Object> asignarLinea(
+            @org.springframework.web.bind.annotation.SessionAttribute(SessionKeys.USER) SessionUser usuario,
+            @PathVariable Integer idProyecto,
+            @RequestBody @Valid LineaRequest request) {
+        return facade.asignarLineaProyecto(usuario, idProyecto, request);
     }
 }

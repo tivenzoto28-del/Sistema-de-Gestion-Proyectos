@@ -234,9 +234,9 @@ async function renderInicio() {
             '</div>';
     } else if (state.rol === 'SECRETARIA') {
         html += '<div class="card"><h3>Funciones habilitadas para secretaria</h3>' +
-            '<p class="muted">Este rol registra proyectos y productos, controla prorrogas, crea cuentas academicas y consulta los reportes autorizados.</p>' +
-            '<div class="form-actions"><button type="button" class="btn btn-primary" data-nav="operaciones">Registrar operaciones</button>' +
-            '<button type="button" class="btn" data-nav="productos">Registrar producto</button></div></div>';
+            '<p class="muted">Este rol atiende a docentes y estudiantes: gestiona proyectos, prorrogas, equipo, estudiantes, cambios de direccion, cierre y creacion de cuentas academicas.</p>' +
+            '<div class="form-actions"><button type="button" class="btn btn-primary" data-nav="operaciones">Ir a operaciones</button>' +
+            '<button type="button" class="btn" data-nav="proyectos">Ver proyectos</button></div></div>';
     } else if (state.rol === 'PROFESOR') {
         const [proyectos, productos] = await Promise.all([
             api('/api/reportes/vista-docente'),
@@ -276,14 +276,6 @@ function tarjetaResumen(etiqueta, valor) {
  * Listado general y detalle para roles con permiso de lectura.
  */
 async function renderProyectos() {
-    if (state.rol === 'SECRETARIA') {
-        setContenido('<div class="card"><h2>Proyectos de investigacion</h2>' +
-            '<p class="muted">La secretaria no tiene permiso SELECT sobre las tablas, por diseno de seguridad. ' +
-            'Puede registrar proyectos y prorrogas desde el modulo de operaciones.</p>' +
-            '<button type="button" class="btn btn-primary" data-nav="operaciones">Ir a operaciones</button></div>');
-        return;
-    }
-
     const proyectos = await api('/api/proyectos');
     const filas = proyectos.map((proyecto) => (
         '<tr>' +
@@ -366,7 +358,6 @@ async function verDetalleProyecto(idProyecto) {
  */
 async function renderOperaciones() {
     await cargarCatalogos();
-    const esAdmin = state.rol === 'ADMIN';
 
     let html = '<section class="hero-card"><p class="eyebrow">Base de datos</p>' +
         '<h2>Operaciones transaccionales</h2>' +
@@ -376,19 +367,20 @@ async function renderOperaciones() {
     html += '<div class="grid-2">';
     html += tarjetaOperacion('Registrar proyecto', formularioRegistrarProyecto(), true);
     html += tarjetaOperacion('Registrar prorroga', formularioProrroga());
-    if (esAdmin) {
-        html += tarjetaOperacion('Cambio de director', formularioCambioDirector());
-        html += tarjetaOperacion('Relevo de direccion', formularioRelevo());
-        html += tarjetaOperacion('Desvincular por cierre', formularioCierre());
-        html += tarjetaOperacion('Asignar profesor al equipo', formularioAsignarProfesor());
-        html += tarjetaOperacion('Registrar estudiante', formularioRegistrarEstudiante());
-        html += tarjetaOperacion('Actualizar proyecto', formularioActualizarProyecto());
-        html += tarjetaOperacion('Eliminar proyecto', formularioEliminarProyecto());
-    }
+    html += tarjetaOperacion('Cambio de director', formularioCambioDirector());
+    html += tarjetaOperacion('Relevo de direccion', formularioRelevo());
+    html += tarjetaOperacion('Desvincular por cierre', formularioCierre());
+    html += tarjetaOperacion('Asignar profesor al equipo', formularioAsignarProfesor());
+    html += tarjetaOperacion('Registrar estudiante', formularioRegistrarEstudiante());
+    html += tarjetaOperacion('Registrar linea de investigacion', formularioRegistrarLinea());
+    html += tarjetaOperacion('Asignar linea a proyecto', formularioAsignarLineaProyecto());
+    html += tarjetaOperacion('Asignar linea a docente', formularioAsignarLineaDocente());
+    html += tarjetaOperacion('Actualizar proyecto', formularioActualizarProyecto());
+    html += tarjetaOperacion('Eliminar proyecto', formularioEliminarProyecto());
     html += '</div>';
 
     setContenido(html);
-    bindOperaciones(esAdmin);
+    bindOperaciones();
 }
 
 function tarjetaOperacion(titulo, contenido, abierta = false) {
@@ -472,6 +464,25 @@ function formularioRegistrarEstudiante() {
         '<div class="form-actions"><button type="submit" class="btn btn-primary">Registrar estudiante</button></div></form>';
 }
 
+function formularioRegistrarLinea() {
+    return '<form id="op-linea"><div class="form-grid">' +
+        '<div class="full"><label>Nombre de la linea</label><input id="ln-nombre" required></div>' +
+        '<div class="full"><label>Descriptores</label><input id="ln-descriptores"></div>' +
+        '</div><div class="form-actions"><button type="submit" class="btn btn-primary">Registrar linea</button></div></form>';
+}
+
+function formularioAsignarLineaProyecto() {
+    return '<form id="op-linea-proyecto"><label>Proyecto</label>' + selectProyectos('lpr-proyecto') +
+        '<label style="margin-top:10px">Linea de investigacion</label>' + selectLineas('lpr-linea') +
+        '<div class="form-actions"><button type="submit" class="btn btn-primary">Asignar al proyecto</button></div></form>';
+}
+
+function formularioAsignarLineaDocente() {
+    return '<form id="op-linea-docente"><label>Docente</label>' + selectProfesores('ldo-docente') +
+        '<label style="margin-top:10px">Linea de investigacion</label>' + selectLineas('ldo-linea') +
+        '<div class="form-actions"><button type="submit" class="btn btn-primary">Asignar al docente</button></div></form>';
+}
+
 function formularioActualizarProyecto() {
     return '<form id="op-actualizar"><label>Proyecto</label>' + selectProyectos('ac-proyecto') +
         '<div class="form-grid" style="margin-top:10px">' +
@@ -493,7 +504,7 @@ function formularioEliminarProyecto() {
         '<div class="form-actions"><button type="submit" class="btn btn-danger">Eliminar proyecto</button></div></form>';
 }
 
-function bindOperaciones(esAdmin) {
+function bindOperaciones() {
     enFormulario('op-proyecto', async () => {
         const respuesta = await api('/api/proyectos', {
             method: 'POST',
@@ -521,10 +532,6 @@ function bindOperaciones(esAdmin) {
         toast(respuesta.mensaje, 'success');
         marcarCatalogosDesactualizados();
     });
-
-    if (!esAdmin) {
-        return;
-    }
 
     enFormulario('op-cambio', async () => {
         const id = valor('cd-proyecto');
@@ -600,6 +607,38 @@ function bindOperaciones(esAdmin) {
                 telefonoEst: valor('ae-telefono') || null,
                 departamentoFacultad: valor('ae-departamento')
             }
+        });
+        toast(respuesta.mensaje, 'success');
+        marcarCatalogosDesactualizados();
+    });
+
+    enFormulario('op-linea', async () => {
+        const respuesta = await api('/api/lineas', {
+            method: 'POST',
+            body: {
+                nombreLinea: valor('ln-nombre'),
+                descriptores: valor('ln-descriptores') || null
+            }
+        });
+        toast(respuesta.mensaje, 'success');
+        marcarCatalogosDesactualizados();
+    });
+
+    enFormulario('op-linea-proyecto', async () => {
+        const id = valor('lpr-proyecto');
+        const respuesta = await api('/api/proyectos/' + id + '/lineas', {
+            method: 'POST',
+            body: { idLinea: Number(valor('lpr-linea')) }
+        });
+        toast(respuesta.mensaje, 'success');
+        marcarCatalogosDesactualizados();
+    });
+
+    enFormulario('op-linea-docente', async () => {
+        const id = valor('ldo-docente');
+        const respuesta = await api('/api/docentes/' + id + '/lineas', {
+            method: 'POST',
+            body: { idLinea: Number(valor('ldo-linea')) }
         });
         toast(respuesta.mensaje, 'success');
         marcarCatalogosDesactualizados();
@@ -767,7 +806,8 @@ function camposProducto(tipo, prefijo) {
         return campoTexto(prefijo, 'nombreRevista', 'Nombre de la revista', true) +
             campoTexto(prefijo, 'editorial', 'Editorial', true) +
             campoTexto(prefijo, 'volumen', 'Volumen', true) +
-            campoSelect(prefijo, 'quartil', 'Quartil', ['', 'Q1', 'Q2', 'Q3', 'Q4'], false);
+            campoSelect(prefijo, 'quartil', 'Quartil', ['', 'Q1', 'Q2', 'Q3', 'Q4'], false) +
+            campoFecha(prefijo, 'fechaPublicacion', 'Fecha de publicacion', true);
     }
     if (tipo === 2) {
         return campoTexto(prefijo, 'nombreCongreso', 'Nombre del congreso', true) +
@@ -1154,6 +1194,13 @@ function selectProfesores(id) {
         '<option value="' + profesor.id + '">' + esc(profesor.nombre) + '</option>'
     )).join('');
     return '<select id="' + id + '">' + opcionesProfesor + '</select>';
+}
+
+function selectLineas(id) {
+    const opcionesLinea = state.catalogos.lineas.map((linea) => (
+        '<option value="' + linea.id + '">' + esc(linea.nombre) + '</option>'
+    )).join('');
+    return '<select id="' + id + '">' + opcionesLinea + '</select>';
 }
 
 function selectEstudiantes(id) {
