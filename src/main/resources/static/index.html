@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Investigación</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div id="login-view" class="login-view">
+        <form id="login-form" class="login-card" autocomplete="on">
+            <div class="login-logo">GI</div>
+            <h1>Iniciar sesión</h1>
+            <p class="login-subtitle">Gestión de Proyectos de Investigación</p>
+
+            <label for="login-usuario">Usuario</label>
+            <input id="login-usuario" name="usuario" type="text" autocomplete="username"
+                   placeholder="Ingrese su usuario" required autofocus>
+
+            <label for="login-password">Contraseña</label>
+            <input id="login-password" name="password" type="password" autocomplete="current-password"
+                   placeholder="Ingrese su contraseña" required>
+
+            <p id="login-error" class="alert alert-error hidden"></p>
+
+            <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+        </form>
+    </div>
+
+    <div id="app-view" class="app-shell hidden">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-icon">GI</div>
+                <div>
+                    <strong>Gestión de Investigación</strong>
+                    <small>Panel de trabajo</small>
+                </div>
+            </div>
+
+            <div id="user-box" class="user-box"></div>
+            <nav id="nav" class="nav"></nav>
+
+            <button id="logout-btn" class="btn btn-ghost btn-block" type="button">Cerrar sesión</button>
+        </aside>
+
+        <main class="main">
+            <header class="topbar">
+                <div>
+                    <p class="eyebrow" id="page-eyebrow">Panel</p>
+                    <h1 id="page-title">Inicio</h1>
+                </div>
+                <div id="topbar-user" class="pill"></div>
+            </header>
+            <section id="contenido" class="content"></section>
+        </main>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+    <script src="/app.js"></script>
+</body>
+</html>

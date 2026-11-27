@@ -1,0 +1,56 @@
+@startuml
+title Diagrama de componentes - Sistema web Gestión de Investigación
+skinparam componentStyle rectangle
+skinparam nodesep 60
+skinparam ranksep 60
+skinparam arrowFontSize 10
+
+actor "Usuario\n(docente, estudiante, secretaria,\ncoordinador, director, administrador)" as Usuario
+
+node "Navegador web" {
+  component "Frontend SPA\nindex.html + styles.css + app.js\nMenú por rol y formularios" as Frontend
+}
+
+node "Servidor de aplicación\nSpring Boot 4.2.0 - Tomcat :8080" {
+  component "REST Controllers\n/auth, /catalogos, /proyectos,\n/productos, /reportes, /dashboard,\n/auditoria" as Controllers
+  component "Seguridad de sesión\nRoleInterceptor + @RequireRole\nSessionUser + Role" as Seguridad
+  component "GestionInvestigacionFacade\nOrquestación de negocio" as Facade
+  component "ProductoFactory\nFactory Method" as Factory
+  component "DatabaseService + Sql\nConexiones JDBC y helpers" as Persistencia
+}
+
+database "MariaDB 11.8.6\nBase de datos gestion_investigacion" {
+  component "Tablas\nproyecto_investigacion, productos,\nprofesores, estudiante, líneas" as Tablas
+  component "SPs transaccionales\nregistro, prórroga, cambio de director,\nrelevo, responsables, cierre,\nreclasificación" as SPTrans
+  component "SPs de reportes\nca1-ca5 y cm1-cm5" as SPReportes
+  component "Triggers y vistas\nauditoría, cupos, equipos,\nvw_docente/vw_estudiante" as TriggersVistas
+  component "Usuarios y privilegios\nadmin_sistema, secretaria,\ncoordinador, director_inv,\nprofesor, estudiante" as UsuariosDB
+}
+
+Usuario --> Frontend : navega / envía formularios
+Frontend --> Controllers : HTTP + JSON\n(cookie JSESSIONID)
+Controllers --> Seguridad : valida rol antes de ejecutar
+Seguridad --> Controllers : autorizado o HTTP 403
+Controllers --> Facade : invoca operación
+Facade --> Factory : crea/reclasifica producto
+Facade --> Persistencia : ejecuta consulta o SP
+Persistencia --> Tablas : JDBC con usuario autenticado
+Persistencia --> SPTrans : CALL con transacción
+Persistencia --> SPReportes : CALL de reportes
+Persistencia --> TriggersVistas : consultas restringidas
+Persistencia --> UsuariosDB : valida credenciales de login
+Persistencia --> UsuariosDB : conexión catálogos con admin_sistema
+SPTrans --> Tablas : INSERT/UPDATE/DELETE atómicos
+TriggersVistas --> Tablas : validan y registran auditoría
+
+note right of Persistencia
+  Las operaciones de negocio usan la conexión
+  del usuario autenticado para que los GRANT
+  de MariaDB se apliquen realmente.
+end note
+
+note bottom of SPTrans
+  EXIT HANDLER -> ROLLBACK y registro
+  en auditoria_operaciones ante error.
+end note
+@enduml

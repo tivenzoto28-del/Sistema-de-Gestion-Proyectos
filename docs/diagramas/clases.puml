@@ -1,0 +1,113 @@
+@startuml
+title Diagrama de clases - Sistema de Gestión de Investigación
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam nodesep 50
+skinparam ranksep 40
+skinparam arrowFontSize 10
+hide empty members
+
+package "Capa de presentación" {
+  class "SPA web\nindex.html + styles.css + app.js" as SPA
+}
+
+package "Controladores REST" {
+  class "AuthController, CatalogosController,\nProyectoController, ProductoController,\nReporteController, DashboardController,\nAuditoriaController" as Controllers
+}
+
+package "Seguridad" {
+  enum Role {
+    ADMIN
+    SECRETARIA
+    COORDINADOR
+    DIRECTOR
+    PROFESOR
+    ESTUDIANTE
+  }
+  class SessionUser {
+    +String usuario
+    +Role rol
+    +String etiquetaRol
+  }
+  class RequireRole <<annotation>>
+  class RoleInterceptor
+}
+
+package "Negocio y patrones GoF" {
+  abstract class Producto {
+    #Integer tipo
+    #String titulo
+    +parametrosRegistro(Integer): Object[]
+    +parametrosReclasificacion(Integer): Object[]
+    +descripcionTipo(): String
+  }
+  class PublicacionRevista
+  class PublicacionCongreso
+  class Libro
+  class Patente
+  class ProductoFactory {
+    +crear(ProductoRequest): Producto
+  }
+  class GestionInvestigacionFacade {
+    +registrarProyecto(SessionUser, RegistrarProyectoRequest)
+    +registrarProducto(SessionUser, ProductoRequest)
+    +registrarProrroga(SessionUser, Integer, ProrrogaRequest)
+    +cambiarDirector(SessionUser, Integer, CambioDirectorRequest)
+    +relevarDireccion(SessionUser, Integer, RelevoRequest)
+    +cerrarProyecto(SessionUser, Integer, CerrarProyectoRequest)
+    +reporteCa1..Ca5(SessionUser)
+    +reporteCm1..Cm5(SessionUser)
+  }
+  class AuthService {
+    +login(String, String): SessionUser
+  }
+}
+
+package "Persistencia" {
+  interface SqlWork <<functional interface>> {
+    +ejecutar(Connection): T
+  }
+  class DatabaseService {
+    +conUsuario(SessionUser, SqlWork): T
+    +conCatalogos(SqlWork): T
+  }
+  class Sql {
+    +consultar(Connection, String, Object[]): List
+    +actualizar(Connection, String, Object[]): int
+    +ejecutarProcedimiento(Connection, String, Object[]): void
+  }
+}
+
+SPA ..> Controllers : HTTP/JSON
+Controllers ..> SessionUser : obtiene de sesión
+Controllers ..> RoleInterceptor : validación
+RoleInterceptor --> SessionUser : lee
+RoleInterceptor ..> RequireRole : evalúa
+RoleInterceptor ..> Role : compara
+SessionUser --> Role
+Controllers --> GestionInvestigacionFacade
+Controllers --> AuthService
+AuthService --> DatabaseService
+GestionInvestigacionFacade --> DatabaseService
+GestionInvestigacionFacade --> ProductoFactory
+GestionInvestigacionFacade ..> Sql
+DatabaseService --> SqlWork
+DatabaseService ..> Sql
+
+Producto <|-- PublicacionRevista
+Producto <|-- PublicacionCongreso
+Producto <|-- Libro
+Producto <|-- Patente
+ProductoFactory ..> Producto : crea
+
+note right of GestionInvestigacionFacade
+  Fachada: único punto de entrada,
+  coordina SPs, triggers y vistas
+end note
+
+note bottom of ProductoFactory
+  Factory Method según tipo:
+  1=Revista, 2=Congreso,
+  3=Libro, 4=Patente
+end note
+@enduml
